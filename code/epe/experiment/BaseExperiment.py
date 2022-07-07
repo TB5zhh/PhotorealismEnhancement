@@ -1,9 +1,11 @@
 import datetime
 import logging
+import math
 import random
 from pathlib import Path
 import sys
 
+import IPython
 import numpy as np
 from scipy.io import savemat
 import torch
@@ -140,7 +142,13 @@ class NetworkState:
 		""" Initialize the network state from a dictionary."""
 
 		self.network.load_state_dict(d['network'])
-		# self._log.warn('NOT LOADING optimizer HERE')
+		# self._log.warn('NOT LOADING optimizer HERE')		if self.clip_gradient_norm > 0:
+		# 			# loss_infos['ggn'] =
+		# 			# n = torch.nn.utils.clip_grad_norm_(self.network.parameters(), self.clip_gradient_norm, norm_type=2)
+		# 			n = torch.nn.utils.clip_grad_norm_(self.network.parameters(), self.clip_gradient_norm, norm_type='inf')
+		# 			if self._log.isEnabledFor(logging.DEBUG):
+		# 				self._log.debug(f'gradient norm: {n}')
+		# 			pass
 		self.optimizer.load_state_dict(d['optimizer'])
 		# self._log.warn('NOT LOADING scheduler HERE')
 		self.scheduler.load_state_dict(d['scheduler'])
@@ -164,13 +172,18 @@ class NetworkState:
 
 
 	def update(self):
+		for p in self.network.parameters():  # Force reset...
+			if p.grad is not None and p.grad.isnan().any():
+				p.grad = None
+			pass
+
 		if self.clip_gradient_norm > 0:
 			# loss_infos['ggn'] = 
 			# n = torch.nn.utils.clip_grad_norm_(self.network.parameters(), self.clip_gradient_norm, norm_type=2)
 			n = torch.nn.utils.clip_grad_norm_(self.network.parameters(), self.clip_gradient_norm, norm_type='inf')
-			if self._log.isEnabledFor(logging.DEBUG):
-				self._log.debug(f'gradient norm: {n}')
-			pass
+			# if self._log.isEnabledFor(logging.DEBUG):
+			# self._log.info(f'gradient norm: {n}')
+			# pass
 
 		self.optimizer.step()						
 		self.scheduler.step()
@@ -186,9 +199,9 @@ class NetworkState:
 				p.data.clamp_(-self.clip_weights, self.clip_weights)
 				pass
 			pass
-				
+
+			pass
 		self.iterations += 1
-		pass
 	pass
 
 
@@ -245,6 +258,7 @@ class LogSync:
 				if valid:
 					vv = valid.values()
 					line.append(f'{sum(vv)/len(vv):.2f} ')
+
 					for vk in valid.keys():
 						del v[vk]
 						pass
@@ -268,7 +282,7 @@ class BaseExperiment:
 
 	"""
 
-	actions  = ['train', 'test', 'infer']
+	actions  = ['train', 'TEST', 'infer']
 	networks = {}
 
 	def __init__(self, args):
@@ -333,7 +347,8 @@ class BaseExperiment:
 		
 		self.weight_dir      = Path(self.cfg.get('weight_dir', './savegames/'))		
 		self.weight_init     = self.cfg.get('name_load', None)
-		self.dbg_dir         = Path(self.cfg.get('out_dir', './out/'))
+		# self.dbg_dir         = Path(self.cfg.get('out_dir', '/home/gaoha/epe/code/out/'))
+		self.dbg_dir = self.weight_dir
 		self.result_ext      = '.jpg' 
 
 		self._log.debug(f'  weight_dir   : {self.weight_dir}')
@@ -543,7 +558,13 @@ class BaseExperiment:
 				for batch in self.loader:
 					if self._should_stop(e, self.i):
 						break
+					# print('Fgt_labels', batch.fake.gt_labels.shape)
+					# print('Fgbuffers', batch.fake.gbuffers.shape)
+					# print('Frlabels', batch.fake.robust_labels.shape)
+					#
+					# print('Trlabels', batch.real.robust_labels.shape)
 
+					self.network.train()
 					log_scalar, log_img = self._train_network(batch.to(self.device))
 					if self._log.isEnabledFor(logging.DEBUG):
 						self._log.debug(f'GPU memory allocated: {torch.cuda.memory_allocated(device=self.device)}')
@@ -563,7 +584,9 @@ class BaseExperiment:
 						pass
 
 					if self.i > 0 and self.i % self.val_interval == 0:
-						self.validate()
+						# TODO: make a new directory, and test all the images in test set
+						print(f"==> TEST: iteration{self.i}")
+						self.TEST(load_model=False)
 						pass
 					pass
 					
@@ -626,7 +649,7 @@ class BaseExperiment:
 		parser.add_argument('action', type=str, choices=cls.actions)
 		parser.add_argument('config', type=Path, help='Path to config file.')
 		parser.add_argument('-log', '--log', type=str, default='info', choices=_logstr2level.keys())
-		parser.add_argument('--log_dir', type=Path, default='./log/', help='Directory for log files.')
+		parser.add_argument('--log_dir', type=Path, default='/home/gaoha/epe/code/out/', help='Directory for log files.')
 		parser.add_argument('--gpu', type=int, default=0, help='ID of GPU. Use -1 to run on CPU. Default: 0')
 		parser.add_argument('--no_safe_exit', action='store_true', default=False, help='Do not save model if anything breaks.')
 		pass

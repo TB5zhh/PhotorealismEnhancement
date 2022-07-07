@@ -3,6 +3,7 @@ import math
 import pathlib
 import random
 
+import IPython
 import numpy as np
 import torch
 import torch.nn as nn
@@ -26,7 +27,7 @@ class DomainNorm2d(nn.Module):
 		self._bias  = nn.Parameter(torch.normal(0, 1, (1,dim,1,1)))
 
 	def forward(self, x):
-		return x.div(x.pow(2).sum(dim=1, keepdims=True).clamp(min=1e-5).sqrt()) * self._scale + self._bias
+		return x.div(x.pow(2).sum(dim=1, keepdims=True).clamp(min=1e-5).sqrt()) * self._scale + self._bias # scale * norm(X) + bias
 
 class CompareNorm2d(nn.Module):
 	def __init__(self, dim):
@@ -38,7 +39,7 @@ class CompareNorm2d(nn.Module):
 
 	def forward(self, x):
 		z = self._norm(x)
-		y = x.div(x.pow(2).sum(dim=1, keepdims=True).clamp(min=1e-5).sqrt())
+		y = x.div(x.pow(2).sum(dim=1, keepdims=True).clamp(min=1e-5).sqrt()) # norm(x)
 		return self._reduce(torch.cat((x, y * self._scale + self._bias, z), 1))
 
 class CompareNorm2d2(nn.Module):
@@ -90,7 +91,10 @@ class DiscriminatorEnsemble(nn.Module):
 			pass
 
 		assert len(run_discs) == len(self.discs)
+		# print('x_before', x)
 		x = self.prepare_input(fix_input=fix_input, run_discs=run_discs, **x)
+		# print('x_after', x)
+
 		return [di(xi) if rd else None for xi, rd, di in zip(x, run_discs, self.discs)]
 
 	def __len__(self):
@@ -258,7 +262,6 @@ class PerceptualDiscEnsemble(DiscriminatorEnsemble):
 
 	def prepare_input(self, *, vgg, img, fix_input, run_discs, **kwargs):
 		""" Applies a VGG to img and returns feature maps from relu layers. """
-
 		if self._log.isEnabledFor(logging.DEBUG):
 			self._log.debug(f'PDE:prepare(i:{img.shape}, fix:{fix_input}, run:{run_discs}, other: {kwargs})')
 			pass

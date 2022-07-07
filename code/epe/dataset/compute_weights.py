@@ -25,6 +25,7 @@ for s in tqdm(src_crops):
 print('Computing individual weights...')
 w = np.zeros((len(src_crops), 1)) 
 for i, s in enumerate(tqdm(src_crops)):
+	print(s)
 	w[i,0] = np.mean(d[s[1]:s[2],s[3]:s[4]])
 	pass
 

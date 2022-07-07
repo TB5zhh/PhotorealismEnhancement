@@ -19,6 +19,7 @@ import os
 import logging
 import functools
 
+import IPython
 import numpy as np
 
 import torch
@@ -490,8 +491,11 @@ class HighResolutionNet(nn.Module):
 			self._log.debug(f'IENet:forward(i:{x.shape}, g:{g.shape}, s:{s.shape})')
 			pass
 
+		# import time
+		# t1 = time.time()
+
 		if self._encoder_type is GBufferEncoderType.CONCAT:
-			x = torch.cat((x, g), 1)
+			x = torch.cat((x, g, s), 1)  # Modified by c7w
 			g_list = [None for i in range(4)]
 		elif self._encoder_type is GBufferEncoderType.SPADE:
 			g_list = [g]
@@ -504,6 +508,9 @@ class HighResolutionNet(nn.Module):
 
 		del g
 		del s
+
+		# t2 = time.time()
+		# print(f"{t2-t1:.4f}: GBuffer Encoder")
 
 		if self._log.isEnabledFor(logging.DEBUG) and self._encoder_type not in [GBufferEncoderType.CONCAT]:
 			self._log.debug(f'  Encoded G-buffers for {len(g_list)} branches:')
@@ -518,6 +525,9 @@ class HighResolutionNet(nn.Module):
 
 		x_list = [x if self.transitions[0][i] is None else self.transitions[0][i](x) \
 			for i in range(self.stage_cfgs[0]['NUM_BRANCHES'])]
+
+		# t2 = time.time()
+		# print(f"{t2-t1:.4f}: Stage 1")
 		
 
 		for j in range(self._num_stages-2):
@@ -538,6 +548,10 @@ class HighResolutionNet(nn.Module):
 				pass
 			pass
 
+			# t2 = time.time()
+			# print(f"{t2 - t1:.4f}: Stage {j+2}")
+
+
 		if self._encoder_type is GBufferEncoderType.SPADE:
 			g_list = ge._append_downsampled_gbuffers(g_list, x_list)
 			pass
@@ -547,6 +561,9 @@ class HighResolutionNet(nn.Module):
 		del y_list
 		del x_list
 		del g_list
+
+		# t2 = time.time()
+		# print(f"{t2-t1:.4f}: Last Stage")
 
 		x = x[::-1]
 		y = x[0]

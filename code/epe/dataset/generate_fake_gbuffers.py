@@ -1,6 +1,7 @@
 import argparse
 from pathlib import Path
 
+import IPython as IPython
 import numpy as np
 import torch
 import torch.utils.data
@@ -17,7 +18,7 @@ def seed_worker(id):
 
 if __name__ == '__main__':
 
-    device = torch.device('cuda')
+    device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
     parser = argparse.ArgumentParser("Compute a fake set of G-buffers using VGG-16 features. \
 This is just to showcase the pipeline/network architecture. \
@@ -28,7 +29,11 @@ Instead of these fake G-buffers generated from images, we strongly recommend ext
     parser.add_argument('--out_dir', type=Path, help="Where to store the fake gbuffer.", default='.')
     args = parser.parse_args()
 
+    print(args)
+    print(device)
     network   = VGG16(False, padding='none').to(device)
+
+    print("Network Loaded!")
 
     def extract(img):
         f = network.fw_relu(img, 3)[-1]

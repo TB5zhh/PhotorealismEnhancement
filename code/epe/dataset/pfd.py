@@ -48,7 +48,7 @@ class PfDDataset(SyntheticDataset):
 
 		super(PfDDataset, self).__init__('GTA')
 
-		assert gbuffers in ['all', 'img', 'no_light', 'geometry', 'fake']
+		assert gbuffers in ['all', 'img', 'no_light', 'geometry', 'fake', 'carla']
 
 		self.transform = transform
 		self.gbuffers  = gbuffers

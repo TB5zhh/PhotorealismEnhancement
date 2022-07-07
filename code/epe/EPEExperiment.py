@@ -1,4 +1,8 @@
+import math
 import warnings
+
+import IPython as IPython
+
 warnings.filterwarnings('ignore', message='numpy.dtype size changed')
 warnings.filterwarnings('ignore', message='numpy.ufunc size changed')
 warnings.filterwarnings("ignore", category=DeprecationWarning) 
@@ -47,6 +51,8 @@ vgg_losses = {\
 
 fake_datasets = {\
 	'GTA':ds.PfDDataset,
+	'Carla':ds.CarlaDataset,
+	'overfit':ds.OverfitDataset,
 }
 
 
@@ -104,7 +110,7 @@ class EPEExperiment(ee.GANExperiment):
 		self.fake_val_path   = Path(fake_cfg.get('val_filelist', None))
 		self.fake_test_path  = Path(fake_cfg.get('test_filelist', None))
 
-		self._log.debug(f'  Fake dataset {self.fake_name} in {self.fake_train_path}[train], {self.fake_val_path}[val], {self.fake_test_path}[test].')
+		self._log.debug(f'  Fake dataset {self.fake_name} in {self.fake_train_path}[train], {self.fake_val_path}[val], {self.fake_test_path}[TEST].')
 
 		# real dataset
 
@@ -151,7 +157,7 @@ class EPEExperiment(ee.GANExperiment):
 		# validation
 		if self.no_validation:
 			self.dataset_fake_val = None
-		elif self.action == 'test':
+		elif self.action == 'TEST':
 			self.dataset_fake_val = fake_datasets[self.fake_name](ds.utils.read_filelist(self.fake_test_path, 4, True))
 		else:
 			self.dataset_fake_val = fake_datasets[self.fake_name](ds.utils.read_filelist(self.fake_val_path, 4, True))
@@ -162,7 +168,11 @@ class EPEExperiment(ee.GANExperiment):
 		if self.action == 'train':
 
 			source_dataset = fake_datasets[self.fake_name](ds.utils.read_filelist(self.fake_train_path, 4, True))
-			target_dataset = ds.RobustlyLabeledDataset(self.real_name, ds.utils.read_filelist(self.real_basepath, 2, True))
+
+			if self.real_name == "Cityscapes":
+				target_dataset = ds.Cityscapes(self.real_name, ds.utils.read_filelist(self.real_basepath, 2, True))
+			else:
+				target_dataset = ds.RobustlyLabeledDataset(self.real_name, ds.utils.read_filelist(self.real_basepath, 2, True))
 
 			if self.sampling == 'matching':
 				self.dataset_train = MatchedCrops(source_dataset, target_dataset, self.sample_cfg)
@@ -240,7 +250,16 @@ class EPEExperiment(ee.GANExperiment):
 			pass
 
 		loss, log_info['vgg'] = tee_loss(loss, self.vgg_weight * self.vgg_loss.forward_fake(batch_fake.img, rec_fake)[0])
+
+		# If loss is NaN
+		if math.isnan(loss):
+			IPython.embed(header="run generator loss is nan")
+
 		loss.backward()
+
+		# for i in self.network.generator.parameters():
+		# 	if torch.isnan(i).any():
+		# 		IPython.embed("After backward")
 
 		return log_info, \
 		{'rec_fake':rec_fake.detach(), 'fake':batch_fake.img.detach(), 'real':batch_real.img.detach()}
@@ -299,6 +318,11 @@ class EPEExperiment(ee.GANExperiment):
 				pass
 			log_scalar[f'rdf{i}']      = accuracy(rm.detach()) # percentage of fake predicted as real
 			loss, log_scalar[f'ds{i}'] = tee_loss(loss, self.gan_loss.forward_fake(rm).mean())
+
+			# If loss is NaN
+			if math.isnan(loss):
+				IPython.embed("loss is nan in disc")
+
 			pass
 		del rm
 		del realism_maps
@@ -356,6 +380,7 @@ class EPEExperiment(ee.GANExperiment):
 
 
 	def evaluate_test(self, batch_fake, batch_id):
+		import time
 		new_img = self.network.generator(batch_fake)
 		return new_img, batch_fake.img, batch_fake.path[0].stem
 
@@ -364,7 +389,7 @@ class EPEExperiment(ee.GANExperiment):
 		return (self.args.dbg_dir / self.args.weight_save / img_name).exists()
 
 
-	def save_result(self, results, id):
+	def save_result(self, results, id, iteration_idx="default"):
 		new_img, old_img, filename = results
 
 		# img_name = self.dataset_fake_val.fakes[id]
@@ -373,12 +398,17 @@ class EPEExperiment(ee.GANExperiment):
 		# 	img_name = '_'.join(img_name)+'.png'
 		# 	pass
 		img = (new_img[0,...].clamp(min=0,max=1).permute(1,2,0).cpu().numpy() * 255.0).astype(np.uint8)
-		imageio.imwrite(str(self.dbg_dir / self.weight_save / f'{filename}{self.result_ext}'), img[:,:,:3])
+		import os
+		os.makedirs(str(self.dbg_dir / self.weight_save / str(iteration_idx)), exist_ok=True)
+		imageio.imwrite(str(self.dbg_dir / self.weight_save / str(iteration_idx) / f'{filename}{self.result_ext}'), img[:,:,:3])
 		pass
 	pass
 
 
 if __name__ == '__main__':
+
+	torch.backends.cudnn.benchmark = True
+	torch.backends.cudnn.deterministic = True
 
 	parser = ArgumentParser()
 	EPEExperiment.add_arguments(parser)

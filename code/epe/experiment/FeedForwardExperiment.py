@@ -16,7 +16,7 @@ class FeedForwardExperiment(BaseExperiment):
 	It is a single network.
 	"""
 
-	actions  = ['train', 'test', 'infer', 'importance', 'val', 'analyze']
+	actions  = ['train', 'TEST', 'infer', 'importance', 'val', 'analyze']
 	networks = {}
 	
 	def __init__(self, args):

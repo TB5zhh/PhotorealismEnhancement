@@ -1,5 +1,6 @@
 import logging
 
+import IPython
 import torch
 import torch.nn as nn
 
@@ -134,8 +135,11 @@ class GBufferEncoder(nn.Module):
 		num_classes = classmap.shape[1]
 		features = 0
 		for c in range(num_classes):
-			features += classmap[:,c,:,:] * self.class_encoders[c](\
+			new_feature = classmap[:,c,:,:] * self.class_encoders[c](\
 				self.cls2gbuf[c](gbuffers) if c in self.cls2gbuf else gbuffers)
+			if new_feature.isnan().any() or new_feature.isinf().any():
+				new_feature = torch.zeros_like(new_feature)
+			features += new_feature
 			pass
 
 		features = [features]

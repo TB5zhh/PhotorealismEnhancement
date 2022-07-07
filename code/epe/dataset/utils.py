@@ -30,9 +30,10 @@ def read_filelist(path_to_filelist, num_expected_entries_per_row, check_if_exist
 
 			if check_if_exists:
 				skip = [p for p in ps if not p.exists()]
+				# logger.debug(list(skip))
 				if skip:
 					num_skipped += 1
-					# logger.warn(f'Skipping {i}: {skip[0]} does not exist.')
+					logger.warn(f'Skipping {i}: {skip[0]} does not exist.')
 					continue
 					# assert p.exists(), f'Path {p} does not exist.'
 					

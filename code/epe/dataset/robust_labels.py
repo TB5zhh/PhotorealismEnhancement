@@ -1,6 +1,7 @@
 import logging
 from pathlib import Path
 
+import IPython
 import imageio
 import torch
 
@@ -51,6 +52,8 @@ class RobustlyLabeledDataset(ImageDataset):
 
 
 	def __getitem__(self, index):
+
+		# IPython.embed()
 		
 		idx      = index % self.__len__()
 		img_path = self.paths[idx]
@@ -70,6 +73,8 @@ class RobustlyLabeledDataset(ImageDataset):
 			pass
 
 		robust_labels = torch.LongTensor(robust_labels).unsqueeze(0)
+
+		# print("In real set, robust labels are:", robust_labels.shape)
 
 		return EPEBatch(img, path=img_path, robust_labels=robust_labels)
 	pass
