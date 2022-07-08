@@ -3,6 +3,6 @@
 **/__pycache__
 **/dbg/
 **/log/
-*.tar
-*.log
 data/
+*.log
+ckpt/
