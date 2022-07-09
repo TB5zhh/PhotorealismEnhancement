@@ -1,15 +1,15 @@
 import argparse
+import os
 from pathlib import Path
 
 import numpy as np
 import torch
 import torch.utils.data
 from tqdm import tqdm
-from epe.dataset.synthetic import SyntheticNpz
 
-from epe.dataset import ImageBatch, ImageDataset
-from epe.dataset.utils import read_filelist
-from epe.network import VGG16
+from .dataset import ImageBatch, ImageDataset, SyntheticNpz
+from .dataset.utils import read_filelist
+from .network import VGG16
 
 
 def seed_worker(id):
@@ -25,6 +25,7 @@ if __name__ == '__main__':
     parser.add_argument('name', type=str, help="Name of the dataset.")
     parser.add_argument('img_list', type=Path, help="Path to csv file with path to images in first column.")
     parser.add_argument('-D', '--dataset', type=str, default='Default')
+    parser.add_argument('--dataset_root', type=str, default=None)
     parser.add_argument('-n', '--num_loaders', type=int, default=1)
     parser.add_argument('-c', '--num_crops', type=int, help="Number of crops to sample per image. Default = 15.", default=15)
     parser.add_argument('--out_dir', type=Path, help="Where to store the crop info.", default='.')
@@ -37,9 +38,9 @@ if __name__ == '__main__':
     num_crops = args.num_crops
 
     if args.dataset == 'Default':
-        dataset = ImageDataset(args.name, read_filelist(args.img_list, 1, False))
+        dataset = ImageDataset(args.name, read_filelist(args.img_list, 1, False, args.dataset_root))
     elif args.dataset == 'Npz':
-        dataset = SyntheticNpz(args.name, args.img_list)
+        dataset = SyntheticNpz(args.name, args.img_list, args.dataset_root)
 
     
     # compute mean/std
@@ -70,7 +71,8 @@ if __name__ == '__main__':
     print('Sampling crops...')
 
     ip = 0
-    with open(args.out_dir / f'crop_{args.name}.csv', 'w') as log:
+    os.makedirs(args.out_dir, exist_ok=True)
+    with open(args.out_dir / f'crop.csv', 'w') as log:
         log.write('id,path,r0,r1,c0,c1\n')
         with torch.no_grad():
             for i, batch in enumerate(tqdm(loader)):
@@ -106,5 +108,4 @@ if __name__ == '__main__':
         pass
 
     print('Saving features.')
-    np.savez_compressed(args.out_dir / f'crop_{args.name}', crops=features)
-    pass
+    np.savez_compressed(args.out_dir / f'crop', crops=features)

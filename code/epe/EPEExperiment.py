@@ -22,11 +22,11 @@ from torch import autograd
 
 import kornia as K
 
-import epe.utils
-import epe.dataset as ds
-import epe.network as nw
-import epe.experiment as ee
-from epe.matching import MatchedCrops, IndependentCrops
+from . import utils
+from . import dataset as ds
+from . import network as nw
+from . import experiment as ee
+from .matching import MatchedCrops, IndependentCrops
 
 torch.backends.cudnn.enabled = True
 torch.backends.cudnn.benchmark = True
@@ -106,6 +106,7 @@ class EPEExperiment(ee.GANExperiment):
 
 		fake_cfg = dict(self.cfg.get('fake_dataset', {}))
 		self.fake_name       = str(fake_cfg.get('name'))
+		self.fake_root		 = Path(fake_cfg.get('root'))
 		self.fake_train_path = Path(fake_cfg.get('train_filelist', None))
 		self.fake_val_path   = Path(fake_cfg.get('val_filelist', None))
 		self.fake_test_path  = Path(fake_cfg.get('test_filelist', None))
@@ -116,6 +117,7 @@ class EPEExperiment(ee.GANExperiment):
 
 		real_cfg = dict(self.cfg.get('real_dataset', {}))
 		self.real_name     = str(real_cfg.get('name'))
+		self.real_root     = str(real_cfg.get('root'))
 		self.real_basepath = Path(real_cfg.get('filelist', None))
 
 		self._log.debug(f'  Real dataset {self.real_name} in {self.real_basepath}.')
@@ -158,21 +160,21 @@ class EPEExperiment(ee.GANExperiment):
 		if self.no_validation:
 			self.dataset_fake_val = None
 		elif self.action == 'TEST':
-			self.dataset_fake_val = fake_datasets[self.fake_name](ds.utils.read_filelist(self.fake_test_path, 4, True))
+			self.dataset_fake_val = fake_datasets[self.fake_name](ds.utils.read_filelist(self.fake_test_path, 2, True, self.fake_root))
 		else:
-			self.dataset_fake_val = fake_datasets[self.fake_name](ds.utils.read_filelist(self.fake_val_path, 4, True))
+			self.dataset_fake_val = fake_datasets[self.fake_name](ds.utils.read_filelist(self.fake_val_path, 2, True, self.fake_root))
 			pass
 
 		# training
 
 		if self.action == 'train':
 
-			source_dataset = fake_datasets[self.fake_name](ds.utils.read_filelist(self.fake_train_path, 4, True))
+			source_dataset = fake_datasets[self.fake_name](ds.utils.read_filelist(self.fake_train_path, 2, True, self.fake_root))
 
 			if self.real_name == "Cityscapes":
-				target_dataset = ds.Cityscapes(self.real_name, ds.utils.read_filelist(self.real_basepath, 2, True))
+				target_dataset = ds.Cityscapes(self.real_name, ds.utils.read_filelist(self.real_basepath, 2, True, self.real_root))
 			else:
-				target_dataset = ds.RobustlyLabeledDataset(self.real_name, ds.utils.read_filelist(self.real_basepath, 2, True))
+				target_dataset = ds.RobustlyLabeledDataset(self.real_name, ds.utils.read_filelist(self.real_basepath, 2, True, self.real_root))
 
 			if self.sampling == 'matching':
 				self.dataset_train = MatchedCrops(source_dataset, target_dataset, self.sample_cfg)
@@ -225,7 +227,7 @@ class EPEExperiment(ee.GANExperiment):
 		}[discriminator_type](self.disc_cfg)
 
 		self.network           = nw.GAN(generator, discriminator).to(self.device)
-		self.adaptive_backprop = epe.utils.AdaptiveBackprop(len(self.network.discriminator), self.device, backprop_target) if not run_disc_always else None
+		self.adaptive_backprop = utils.AdaptiveBackprop(len(self.network.discriminator), self.device, backprop_target) if not run_disc_always else None
 		self._log.debug(f'AdaptiveBackprop is [{"on" if self.adaptive_backprop else "off"}].')
 		self._log.debug(f'  check fake performance : [{"on" if self.check_fake_for_backprop else "off"}].')
 		self._log.debug(f'  target                 : {backprop_target}')

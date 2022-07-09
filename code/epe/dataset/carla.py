@@ -21,6 +21,7 @@ def center(x, m, s):
 	return x
 
 
+
 class CarlaDataset(SyntheticDataset):
 	def __init__(self, paths, transform=None, gbuffers='carla'):
 		"""
@@ -74,7 +75,7 @@ class CarlaDataset(SyntheticDataset):
 	@property
 	def num_classes(self):
 		""" Number of classes in the semantic segmentation maps."""
-		return 11
+		return 13
 
 
 	@property
@@ -94,7 +95,7 @@ class CarlaDataset(SyntheticDataset):
 	def __getitem__(self, index):
 
 		index  = index % self.__len__()
-		img_path, robust_label_path, gbuffer_path, gt_label_path = self._paths[index]
+		img_path, gbuffer_path = self._paths[index]
 
 		if not gbuffer_path.exists():
 			self._log.error(f'Gbuffers at {gbuffer_path} do not exist.')
@@ -103,43 +104,22 @@ class CarlaDataset(SyntheticDataset):
 
 
 		data = np.load(gbuffer_path)
-
-		img       = mat2tensor(data['img'].astype(np.float32) / 255.0)
+		img       = mat2tensor(data['rgbs'].squeeze().astype(np.float32))
 		gbuffers  = mat2tensor(data['gbuffers'].astype(np.float32))
-		gt_labels = mat2tensor(data['shader'].astype(np.float32))
+		gt_labels = mat2tensor(data['masks'].astype(np.float32))
 
 
 		if self._gbuf_mean is not None:
 			gbuffers = center(gbuffers, self._gbuf_mean, self._gbuf_std)
 			pass
 
-		if not robust_label_path.exists():
-			self._log.error(f'Robust labels at {robust_label_path} do not exist.')
-			raise FileNotFoundError
-			pass
 
-		label_map = [gt_labels[k][np.newaxis, :, :] * k for k in range(12)]
-		label_map = label_map[0:9] + label_map[10:12]  # Exclude 9
+		label_map = [gt_labels[k][np.newaxis, :, :] * k for k in range(self.num_classes)]
+		# label_map = label_map[0:9] + label_map[10:12]  # Exclude 9
 		robust_labels = np.concatenate(label_map, axis=0).max(axis=0)[np.newaxis, :, :]
 		robust_labels =	torch.Tensor(robust_labels).long()
 
-		gt_labels = torch.concat([gt_labels[0:9, :, :], gt_labels[10:12, :, :]], dim=0)
-
-		# img =  mat2tensor(np.array(imageio.imread(img_path))).float() / 255.0
-		# gbuffers = np.load(gbuffer_path)['data'].transpose((2, 0, 1))[0:1, :, :]
-		# gtlabel_map = np.array(imageio.imread(gt_label_path))
-		# mask = np.zeros(shape=(gtlabel_map.shape[0], gtlabel_map.shape[1], 12))
-		# for idx, color in enumerate(Carla.color2id.keys()):
-		# 	mask[:, :, Carla.color2id[tuple(color)]] += (gtlabel_map == color).all(axis=2)
-		# gt_labels = mask.transpose((2, 0, 1))
-		# robust_labels = np.concatenate([mask[:, :, k][np.newaxis, :, :] * k for k in range(12)], axis=0)\
-		# 				.max(axis=0)[np.newaxis, :, :]
-		#
-		# # Convert to tensor
-		# gbuffers = torch.Tensor(gbuffers).float()
-		# gt_labels = torch.Tensor(gt_labels).float()
-		# robust_labels = torch.Tensor(robust_labels).long()
-
+		# gt_labels = torch.concat([gt_labels[0:9, :, :], gt_labels[10:12, :, :]], dim=0)
 
 		return EPEBatch(img, gbuffers=gbuffers, gt_labels=gt_labels, robust_labels=robust_labels, path=img_path, coords=None)
 

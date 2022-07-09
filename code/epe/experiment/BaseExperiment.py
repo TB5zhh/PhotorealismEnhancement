@@ -1,6 +1,7 @@
 import datetime
 import logging
 import math
+import os
 import random
 from pathlib import Path
 import sys
@@ -48,6 +49,7 @@ def parse_loglevel(loglevel_arg):
 
 def init_logging(args):
 	now = datetime.datetime.now()
+	os.makedirs(args.log_dir, exist_ok=True)
 	log_path = args.log_dir / f'{args.config.stem}_{datetime.date.today().isoformat()}_{now.hour}-{now.minute}-{now.second}.log'
 	level = parse_loglevel(args.log)
 	logging.basicConfig(level=level, format="%(asctime)s %(message)s", handlers=[logging.FileHandler(log_path, mode='a'), logging.StreamHandler()])	

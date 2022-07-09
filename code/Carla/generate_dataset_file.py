@@ -168,7 +168,7 @@ class Carla:
         if name in ['unlabeled', 'water', 'other', 'dynamic']: return 11
         if name in ['building', 'fence', 'bridge']: return 10
         if name in ['pole']: return 6
-        if name in ['wall', 'rail_track', 'guard_rail', 'road_line']: return 10
+        if name in ['wall', 'rail_track', 'guard_rail', 'road_line']: return 9
         if name in ['person']: return 5
         if name in ['sky']: return 0
         if name in ['road', 'static', 'sidewalk', 'ground']: return 1

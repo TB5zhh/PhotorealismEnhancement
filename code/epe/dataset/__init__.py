@@ -5,3 +5,4 @@ from .robust_labels import RobustlyLabeledDataset
 from .carla import CarlaDataset
 from .cityscapes import Cityscapes
 from .overfit import OverfitDataset
+from .synthetic import SyntheticNpz

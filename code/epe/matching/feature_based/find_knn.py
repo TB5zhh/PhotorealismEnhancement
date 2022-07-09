@@ -30,4 +30,3 @@ if __name__ == '__main__':
     D,I = nn_index.search(features_ref, args.k)
 
     np.savez_compressed(f'{args.out}', ind=I, dist=D)
-    pass

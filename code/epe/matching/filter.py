@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 from tqdm import tqdm
 
-from epe.dataset.utils import load_crops
+from ..dataset.utils import load_crops
 
 logger = logging.getLogger('epe.matching.filter')
 
@@ -43,7 +43,7 @@ def save_matching_crops(src_crops, dst_crops, path):
 	pass
 
 
-def load_and_filter_matching_crops(knn_path, src_crop_path, dst_crop_path, max_dist=1.0):
+def load_and_filter_matching_crops(dst_distances, dst_indices, src_crop_path, dst_crop_path, max_dist=1.0):
 	""" Loads crop info from source and target datasets and knn matches between crops and filters the matches based on distance. 
 
 	knn_path -- Path to knn matches
@@ -53,13 +53,13 @@ def load_and_filter_matching_crops(knn_path, src_crop_path, dst_crop_path, max_d
 
 	"""
 
-	logger.debug(f'Filtering matches from {knn_path}.')
+	# logger.debug(f'Filtering matches from {knn_path}.')
 	logger.debug(f'  Source crops from {src_crop_path}.')
 	logger.debug(f'  Target crops from {dst_crop_path}.')
 
-	data     = np.load(knn_path)
-	dst_distances = data['dist'] # may need to add more samples
-	dst_indices   = data['ind']
+	# data     = np.load(knn_path)
+	# dst_distances = data['dist'] # may need to add more samples
+	# dst_indices   = data['ind']
 
 	logger.debug(f'  Found {dst_distances.shape[0]} source crops with {dst_distances.shape[1]} neighbours each.')
 
