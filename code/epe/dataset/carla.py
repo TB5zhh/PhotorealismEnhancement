@@ -75,7 +75,7 @@ class CarlaDataset(SyntheticDataset):
 	@property
 	def num_classes(self):
 		""" Number of classes in the semantic segmentation maps."""
-		return 13
+		return 12
 
 
 	@property

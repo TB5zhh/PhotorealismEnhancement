@@ -1,0 +1,63 @@
+1. Set up the environment
+
+    ```shell
+    # TODO
+    ```
+
+2. Prepare simulation datasets:
+
+    ```shell
+    python -m epe.prepare_carla -D [dataset_root]
+    ```
+
+    Available arguments:
+    
+    * `-D`: the root of carla generated datasets
+    * `--cut_head`: number of frames to discard in the beginning
+
+    The carla generated datasets should have multiple basic directories each of which has following directory structures:
+    ```shell
+    1
+    ├── config.json
+    ├── depth_v/
+    ├── gbuffer_v/
+    ├── mask_v/
+    ├── path.txt
+    └── rgb_v/
+    ```
+
+
+    After running the preparation script:
+    
+    * A subdirectory `data` is created, containing one `npz` file for each frame.
+    * A text file `paths.txt` is created. In this file, each line corresponds to a frame and contains the relative paths of its rgb image and its `npz` file, separated by a comma.   
+
+3. Collect crops for the source dataset:
+
+    ```shell
+    python -m epe.collect_crops \
+    carla data/anomaly_dataset/v0.1.1/paths.txt \
+    --dataset_root data/anomaly_dataset/v0.1.1/ \
+    --out_dir data/anomaly_dataset/v0.1.1/crops
+    ```
+
+4. Collect crops for the target datasets:
+    <!-- TODO -->
+
+5. Match and filter the crops:
+
+    ```shell
+    python -m epe.match_filter_calc \
+    data/anomaly_dataset/v0.1.1/crops \
+    data/cityscapes_crop/ data/match_v0.1.1/ \
+    --height 1080 --width 1920
+    ```
+
+6. Create config files:
+
+    [example](config/train_v0.1.1.yaml)
+
+7. Run Experiments
+    ```shell
+    python -m epe.EPEExperiment train config/train_v0.1.1.yaml --log_dir ../log
+    ```

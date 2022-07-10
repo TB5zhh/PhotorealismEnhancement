@@ -31,8 +31,8 @@ def transform_labels(original_label_map):
     label_map[:,:,6] = (np.isin(original_label_map, [17, 18])).astype(np.long) # pole
     label_map[:,:,7] = (np.isin(original_label_map, [19])).astype(np.long) # traffic light
     label_map[:,:,8] = (np.isin(original_label_map, [20])).astype(np.long) # traffic sign
-    label_map[:,:,10] = (np.isin(original_label_map, [11, 12, 13, 14, 15, 16])).astype(np.long) # building
-    label_map[:,:,11] = (np.isin(original_label_map, [0, 2, 3, 5, 255])).astype(np.long) # other
+    label_map[:,:,9] = (np.isin(original_label_map, [11, 12, 13, 14, 15, 16])).astype(np.long) # building
+    label_map[:,:,10] = (np.isin(original_label_map, [0, 2, 3, 5, 255])).astype(np.long) # other
 
     for k in range(12):
         label_map[:,:,k] = label_map[:,:,k] * k
