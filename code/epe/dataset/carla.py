@@ -106,7 +106,7 @@ class CarlaDataset(SyntheticDataset):
 		data = np.load(gbuffer_path)
 		img       = mat2tensor(data['rgbs'].squeeze().astype(np.float32))
 		gbuffers  = mat2tensor(data['gbuffers'].astype(np.float32))
-		gt_labels = mat2tensor(data['masks'].astype(np.float32))
+		gt_labels = mat2tensor(data['masks'])
 
 
 		if self._gbuf_mean is not None:
@@ -114,14 +114,16 @@ class CarlaDataset(SyntheticDataset):
 			pass
 
 
-		label_map = [gt_labels[k][np.newaxis, :, :] * k for k in range(self.num_classes)]
-		# label_map = label_map[0:9] + label_map[10:12]  # Exclude 9
-		robust_labels = np.concatenate(label_map, axis=0).max(axis=0)[np.newaxis, :, :]
-		robust_labels =	torch.Tensor(robust_labels).long()
+		# label_map = [gt_labels[k][np.newaxis, :, :] * k for k in range(self.num_classes)]
+		# # label_map = label_map[0:9] + label_map[10:12]  # Exclude 9
+		# robust_labels = np.concatenate(label_map, axis=0).max(axis=0)[np.newaxis, :, :]
+		# robust_labels =	torch.Tensor(robust_labels).long()
 
+		robust_labels = torch.Tensor(gt_labels).long()
+		per_channel_labels = torch.tensor(np.concatenate([ ((gt_labels == i).to(int).numpy())[np.newaxis, :, :] for i in range(self.num_classes)], axis=0)).squeeze()
 		# gt_labels = torch.concat([gt_labels[0:9, :, :], gt_labels[10:12, :, :]], dim=0)
 
-		return EPEBatch(img, gbuffers=gbuffers, gt_labels=gt_labels, robust_labels=robust_labels, path=img_path, coords=None)
+		return EPEBatch(img, gbuffers=gbuffers, gt_labels=per_channel_labels, robust_labels=robust_labels, path=img_path, coords=None)
 
 
 	def __len__(self):

@@ -149,7 +149,7 @@ if __name__ == '__main__':
                 mask_f) in enumerate(zip(tqdm(rgb_list), depth_list, mask_list)):
             if idx < args.cut_head:
                 continue
-            rgbs = load(Path(root) / 'rgb_v' / rgb_f),
+            rgbs = load(Path(root) / 'rgb_v' / rgb_f).astype(np.float32)
             try:
                 channels = [
                     load_depth(Path(root) / 'depth_v' / depth_f)[:, :, np.newaxis],
@@ -172,9 +172,9 @@ if __name__ == '__main__':
                     np.stack(
                         [(mask == c.color).all(axis=2) for c in p.train_cates[i]],
                         axis=2,
-                    ).any(axis=2, keepdims=True))
-            gbuffers = np.concatenate(channels, axis=2)
-            masks = np.concatenate(masks, axis=2)
+                    ).any(axis=2, keepdims=True).astype(np.uint8) * i)
+            gbuffers = np.concatenate(channels, axis=2).astype(np.float32)
+            masks = np.sum(np.stack(masks, axis=2), axis=2).astype(np.uint8) 
             os.makedirs(Path(root) / 'data', exist_ok=True)
             np.savez(Path(root) / 'data' / f'{idx}.npz',
                     rgbs=rgbs,

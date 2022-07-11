@@ -2,6 +2,8 @@
 
     ```shell
     # TODO
+    pip install -i https://pypi.tuna.tsinghua.edu.cn/simple numpy pillow tqdm imageio scikit-image IPython kornia lpips faiss-gpu pyyaml
+    pip3 install torch torchvision --extra-index-url https://download.pytorch.org/whl/cu116
     ```
 
 2. Prepare simulation datasets:
