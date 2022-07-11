@@ -13,6 +13,7 @@ from .synthetic import SyntheticDataset
 from .utils import mat2tensor, normalize_dim
 from Carla.generate_dataset_file import Carla
 
+from IPython import embed
 
 def center(x, m, s):
 	x[0,:,:] = (x[0,:,:] - m[0]) / s[0]

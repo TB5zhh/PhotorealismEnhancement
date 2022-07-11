@@ -1,3 +1,4 @@
+from collections import namedtuple
 import IPython
 import imageio
 import numpy as np
@@ -6,39 +7,48 @@ from .robust_labels import RobustlyLabeledDataset
 from .batch_types import EPEBatch
 from .utils import mat2tensor
 
+TypeCls = namedtuple('Category', ['name', 'csId', 'train_id'])
+CITYSCAPES_CATES = (
+    TypeCls(  'sky'                  , 23 , 0),
+    TypeCls(  'road'                 ,  7 , 1),
+    TypeCls(  'sidewalk'             ,  8 , 1),
+    TypeCls(  'parking'              ,  9 , 1),
+    TypeCls(  'rail track'           , 10 , 1),
+    TypeCls(  'car'                  , 26 , 2),
+    TypeCls(  'truck'                , 27 , 2),
+    TypeCls(  'bus'                  , 28 , 2),
+    TypeCls(  'caravan'              , 29 , 2),
+    TypeCls(  'trailer'              , 30 , 2),
+    TypeCls(  'train'                , 31 , 2),
+    TypeCls(  'motorcycle'           , 32 , 2),
+    TypeCls(  'bicycle'              , 33 , 2),
+    TypeCls(  'terrain'              , 22 , 3),
+    TypeCls(  'vegetation'           , 21 , 4),
+    TypeCls(  'person'               , 24 , 5),
+    TypeCls(  'rider'                , 25 , 5),
+    TypeCls(  'pole'                 , 17 , 6),
+    TypeCls(  'polegroup'            , 18 , 6),
+    TypeCls(  'traffic light'        , 19 , 7),
+    TypeCls(  'traffic sign'         , 20 , 8),
+    TypeCls(  'building'             , 11 , 9),
+    TypeCls(  'wall'                 , 12 , 9),
+    TypeCls(  'fence'                , 13 , 9),
+    TypeCls(  'guard rail'           , 14 , 9),
+    TypeCls(  'bridge'               , 15 , 9),
+    TypeCls(  'tunnel'               , 16 , 9),
+    TypeCls(  'static'               ,  4 , 10),
+    TypeCls(  'dynamic'              ,  5 , 10),
+    TypeCls(  'ground'               ,  6 , 10),
+    TypeCls(  'unlabeled'            ,  0 , 10),
+    TypeCls(  'ego vehicle'          ,  1 , 11),
+    TypeCls(  'rectification border' ,  2 , 11),
+    TypeCls(  'out of roi'           ,  3 , 11),
+    TypeCls(  'license plate'        , -1 , 11),
+)
 
 def transform_labels(original_label_map):
-    # if name in ['unlabeled', 'water', 'other', 'dynamic']: return 11
-    # if name in ['building', 'fence', 'bridge']: return 10
-    # if name in ['pole']: return 6
-    # if name in ['wall', 'rail_track', 'guard_rail', 'road_line']: return 10
-    # if name in ['person']: return 5
-    # if name in ['sky']: return 0
-    # if name in ['road', 'static', 'sidewalk', 'ground']: return 1
-    # if name in ['car']: return 2
-    # if name in ['vegetation']: return 4
-    # if name in ['traffic_light']: return 7
-    # if name in ['traffic_sign']: return 8
-    # if name in ['terrain']: return 3
-
-    label_map = np.zeros((original_label_map.shape[0], original_label_map.shape[1], 12), dtype=np.long)
-    label_map[:,:,0] = (original_label_map == 23).astype(np.long) # sky
-    label_map[:,:,1] = (np.isin(original_label_map, [4, 6, 7, 8, 9, 10])).astype(np.long) # road / static / sidewalk
-    label_map[:,:,2] = (np.isin(original_label_map, [1,26,27,28,29,30,31,32,33])).astype(np.long) # vehicle
-    label_map[:,:,3] = (original_label_map == 22).astype(np.long) # terrain
-    label_map[:,:,4] = (original_label_map == 21).astype(np.long) # vegetation
-    label_map[:,:,5] = (np.isin(original_label_map, [24, 25])).astype(np.long) # person
-    label_map[:,:,6] = (np.isin(original_label_map, [17, 18])).astype(np.long) # pole
-    label_map[:,:,7] = (np.isin(original_label_map, [19])).astype(np.long) # traffic light
-    label_map[:,:,8] = (np.isin(original_label_map, [20])).astype(np.long) # traffic sign
-    label_map[:,:,9] = (np.isin(original_label_map, [11, 12, 13, 14, 15, 16])).astype(np.long) # building
-    label_map[:,:,10] = (np.isin(original_label_map, [0, 2, 3, 5, 255])).astype(np.long) # other
-
-    for k in range(12):
-        label_map[:,:,k] = label_map[:,:,k] * k
-
-    label_map = np.concatenate([label_map[:, :, k][np.newaxis, :, :] for k in range(12)], axis=0)\
-                    .max(axis=0)[np.newaxis, :, :]
+    label_maps = [(original_label_map == csId).astype(np.long) * train_id for _, csId, train_id in CITYSCAPES_CATES]
+    label_map = np.sum(np.stack(label_maps, axis=0), axis=0, keepdims=True)
     return label_map
 
 

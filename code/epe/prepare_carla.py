@@ -62,6 +62,8 @@ class CHANNEL(IntEnum):
     MASK_CLS_9 = auto()
     MASK_CLS_10 = auto()
     MASK_CLS_11 = auto()
+
+
 DATASET_ROOT = 'data/anomaly_dataset/v0.1.1'
 CUT_HEAD = 10
 
@@ -71,31 +73,42 @@ class CarlaPalette:
 
     def __init__(self) -> None:
         TypeCls = namedtuple('Category', ['name', 'color', 'train_id'])
-        self.num_train_id = 13
+        self.num_train_id = 12
         self.categories = [
             TypeCls('sky', (70, 130, 180), 0),
+            #
             TypeCls('road', (128, 64, 128), 1),
             TypeCls('sidewalk', (244, 35, 232), 1),
             TypeCls('ground', (81, 0, 81), 1),
-            TypeCls('static', (110, 190, 160), 1),
             TypeCls('road_line', (157, 234, 50), 1),
+            TypeCls('rail_track', (230, 150, 140), 1),
+            #
             TypeCls('car', (0, 0, 142), 2),
+            #
             TypeCls('terrain', (145, 170, 100), 3),
+            #
             TypeCls('vegetation', (107, 142, 35), 4),
+            #
             TypeCls('person', (220, 20, 60), 5),
+            #
             TypeCls('pole', (153, 153, 153), 6),
+            #
             TypeCls('traffic_light', (250, 170, 30), 7),
+            #
             TypeCls('traffic_sign', (220, 220, 0), 8),
-            TypeCls('wall', (102, 102, 156), 10),
-            TypeCls('rail_track', (230, 150, 140), 10),
-            TypeCls('guard_rail', (180, 165, 180), 10),
-            TypeCls('building', (70, 70, 70), 10),
-            TypeCls('fence', (100, 40, 40), 10),
-            TypeCls('bridge', (150, 100, 100), 10),
-            TypeCls('other', (55, 90, 80), 11),
-            TypeCls('dynamic', (170, 120, 50), 11),
-            TypeCls('water', (45, 60, 150), 11),
-            TypeCls('unlabeled', (0, 0, 0), 12),
+            #
+            TypeCls('building', (70, 70, 70), 9),
+            TypeCls('wall', (102, 102, 156), 9),
+            TypeCls('fence', (100, 40, 40), 9),
+            TypeCls('bridge', (150, 100, 100), 9),
+            TypeCls('guard_rail', (180, 165, 180), 9),
+            #
+            TypeCls('unlabeled', (0, 0, 0), 10),
+            TypeCls('other', (55, 90, 80), 10),
+            TypeCls('static', (110, 190, 160), 10),
+            TypeCls('dynamic', (170, 120, 50), 10),
+            TypeCls('water', (45, 60, 150), 10),
+            #
         ]
         self.train_cates = [[
             cate for cate in self.categories if cate.train_id == train_id
@@ -120,7 +133,7 @@ def test(result):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-D', '--dataset_dir', type=Path)
-    parser.add_argument('--cut_head', type=int,default=10)
+    parser.add_argument('--cut_head', type=int, default=10)
     args = parser.parse_args()
     path_list = []
     for root, dirs, files in os.walk(args.dataset_dir):
@@ -145,19 +158,24 @@ if __name__ == '__main__':
         load_depth = lambda x: np.einsum(
             'xya,a->xy', np.asarray(Image.open(x)),
             np.array((1, 256, 65536)) / (256 * 256 * 256 - 1) * 1000)
-        for idx, (rgb_f, depth_f,
-                mask_f) in enumerate(zip(tqdm(rgb_list), depth_list, mask_list)):
+        for idx, (rgb_f, depth_f, mask_f) in enumerate(
+                zip(tqdm(rgb_list), depth_list, mask_list)):
             if idx < args.cut_head:
                 continue
             rgbs = load(Path(root) / 'rgb_v' / rgb_f).astype(np.float32)
             try:
                 channels = [
-                    load_depth(Path(root) / 'depth_v' / depth_f)[:, :, np.newaxis],
+                    load_depth(Path(root) / 'depth_v' / depth_f)[:, :,
+                                                                 np.newaxis],
                     load(Path(root) / 'gbuffer_v' / f'{idx}-SceneColor.png'),
-                    load(Path(root) / 'gbuffer_v' / f'{idx}-SceneGBufferA.png'),
-                    load(Path(root) / 'gbuffer_v' / f'{idx}-SceneGBufferC.png'),
-                    load(Path(root) / 'gbuffer_v' / f'{idx}-SceneGBufferB.png'),
-                    load(Path(root) / 'gbuffer_v' / f'{idx}-SceneGBufferD.png'),
+                    load(
+                        Path(root) / 'gbuffer_v' / f'{idx}-SceneGBufferA.png'),
+                    load(
+                        Path(root) / 'gbuffer_v' / f'{idx}-SceneGBufferC.png'),
+                    load(
+                        Path(root) / 'gbuffer_v' / f'{idx}-SceneGBufferB.png'),
+                    load(
+                        Path(root) / 'gbuffer_v' / f'{idx}-SceneGBufferD.png'),
                 ]
             except FileNotFoundError:
                 break
@@ -166,20 +184,21 @@ if __name__ == '__main__':
             mask = np.asarray(Image.open(Path(root) / 'mask_v' / mask_f))
             p = CarlaPalette()
             for i in range(p.num_train_id):
-                if i == 9:
+                if i == 11:
                     continue
                 masks.append(
                     np.stack(
-                        [(mask == c.color).all(axis=2) for c in p.train_cates[i]],
+                        [(mask == c.color).all(axis=2)
+                         for c in p.train_cates[i]],
                         axis=2,
                     ).any(axis=2, keepdims=True).astype(np.uint8) * i)
             gbuffers = np.concatenate(channels, axis=2).astype(np.float32)
-            masks = np.sum(np.stack(masks, axis=2), axis=2).astype(np.uint8) 
+            masks = np.sum(np.stack(masks, axis=2), axis=2).astype(np.uint8)
             os.makedirs(Path(root) / 'data', exist_ok=True)
             np.savez(Path(root) / 'data' / f'{idx}.npz',
-                    rgbs=rgbs,
-                    gbuffers=gbuffers,
-                    masks=masks)
+                     rgbs=rgbs,
+                     gbuffers=gbuffers,
+                     masks=masks)
             path_list.append(
                 str(Path(root) / 'rgb_v' / f'{idx}.png') + ',' +
                 str(Path(root) / 'data' / f'{idx}.npz'))
