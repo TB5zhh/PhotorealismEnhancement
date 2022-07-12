@@ -41,6 +41,8 @@
     carla data/anomaly_dataset/v0.1.1/paths.txt \
     --dataset_root data/anomaly_dataset/v0.1.1/ \
     --out_dir data/anomaly_dataset/v0.1.1/crops
+    # New
+    python -m epe.collect_crops -L data/anomaly_dataset/v0.1.2/paths.txt -D data/anomaly_dataset/v0.1.2/ -O data/anomaly_dataset/v0.1.2/crops_multiscale -S 100 300
     ```
 
 4. Collect crops for the target datasets:

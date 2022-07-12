@@ -70,7 +70,7 @@ class CarlaDataset(SyntheticDataset):
 	def num_gbuffer_channels(self):
 		""" Number of image channels the provided G-buffers contain."""
 		# return 2
-		return 16
+		return 13
 
 
 	@property

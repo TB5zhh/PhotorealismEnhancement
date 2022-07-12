@@ -1,6 +1,7 @@
 import argparse
 import os
 from pathlib import Path
+import random
 
 import numpy as np
 import torch
@@ -22,25 +23,25 @@ if __name__ == '__main__':
     device = torch.device('cuda')
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('name', type=str, help="Name of the dataset.")
-    parser.add_argument('img_list', type=Path, help="Path to csv file with path to images in first column.")
-    parser.add_argument('-D', '--dataset', type=str, default='Default')
-    parser.add_argument('--dataset_root', type=str, default=None)
-    parser.add_argument('-n', '--num_loaders', type=int, default=1)
-    parser.add_argument('-c', '--num_crops', type=int, help="Number of crops to sample per image. Default = 15.", default=15)
-    parser.add_argument('--out_dir', type=Path, help="Where to store the crop info.", default='.')
+    parser.add_argument('-L', '--img_list', type=Path, help="Path to csv file with path to images in first column.")
+    parser.add_argument('-D', '--dataset_root', type=str, help='Root directory of the dataset', default=None)
+    parser.add_argument('-O', '--out_dir', type=Path, help="Where to store the crop info.", default='.')
+    parser.add_argument('-C', '--num_crops', type=int, help="Number of crops to sample per image. Default = 15.", default=30)
+    parser.add_argument('-S', '--crop_size', nargs='+', type=int, help="Max, min of crop size. Default = 196.", default=[196, 196])
+    parser.add_argument('--dataset_type', type=str, default='Default', help='Dataset class to load data')
+    parser.add_argument('--num_loaders', type=int, default=1)
     args = parser.parse_args()
 
     network   = VGG16(False, padding='none').to(device)
     extract   = lambda img: network.fw_relu(img, 13)[-1]
-    crop_size = 196 # VGG-16 receptive field at relu 5-3
+    crop_size = args.crop_size # VGG-16 receptive field at relu 5-3
     dim       = 512 # channel width of VGG-16 at relu 5-3
     num_crops = args.num_crops
 
-    if args.dataset == 'Default':
-        dataset = ImageDataset(args.name, read_filelist(args.img_list, 1, False, args.dataset_root))
-    elif args.dataset == 'Npz':
-        dataset = SyntheticNpz(args.name, args.img_list, args.dataset_root)
+    if args.dataset_type == 'Default':
+        dataset = ImageDataset('TempDataset', read_filelist(args.img_list, 1, False, args.dataset_root))
+    elif args.dataset_type == 'Npz':
+        dataset = SyntheticNpz('TempDataset', args.img_list, args.dataset_root)
 
     
     # compute mean/std
@@ -52,7 +53,7 @@ if __name__ == '__main__':
     print('Computing mean/std...')
 
     m, s = [], []
-    for i, batch in tqdm(zip(range(1000), loader)):
+    for i, batch in enumerate(tqdm(loader)):
         m.append(batch.img.mean(dim=(2,3)))
         s.append(batch.img.std(dim=(2,3)))
         pass
@@ -83,17 +84,18 @@ if __name__ == '__main__':
                 if i == 0:
                     print(f'Image size is {h}x{w} - sampling {num_crops} crops per image.')
                     pass
-
-                c0s = torch.randint(w-crop_size+1, (num_crops,1))
-                r0s = torch.randint(h-crop_size+1, (num_crops,1))
+                
+                crop_size_taken = random.randint(crop_size[0], crop_size[1])
+                c0s = torch.randint(w-crop_size_taken+1, (num_crops,1))
+                r0s = torch.randint(h-crop_size_taken+1, (num_crops,1))
 
                 samples = []
                 for j in range(num_crops):
                     r0 = r0s[j].item()
                     c0 = c0s[j].item()
-                    r1 = r0 + crop_size
-                    c1 = c0 + crop_size
-                    samples.append(batch.img[0,:,r0:r1,c0:c1].reshape(1,3,crop_size,crop_size))
+                    r1 = r0 + crop_size_taken
+                    c1 = c0 + crop_size_taken
+                    samples.append(torch.nn.functional.interpolate(batch.img[0:1,:,r0:r1,c0:c1], 196, mode='bilinear'))
                     log.write(f'{ip},{batch.path[0]},{r0},{r1},{c0},{c1}\n')
                     ip += 1
                     pass

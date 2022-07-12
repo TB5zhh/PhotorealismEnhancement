@@ -52,10 +52,10 @@ if __name__ == '__main__':
     save_matching_crops(sc, dc, Path(args.out_dir) / 'filtered_matches.csv')
 
     #### Compute Weights
-    d = np.zeros((args.height, args.width), dtype=np.int32)
+    d = np.zeros((args.height, args.width))
     print('Computing density...')
     for s in tqdm(sc): 
-        d[s[1]:s[2],s[3]:s[4]] += 1 
+        d[s[1]:s[2],s[3]:s[4]] += 196 / (s[2] - s[1])
 
     print('Computing individual weights...')
     w = np.zeros((len(sc), 1)) 

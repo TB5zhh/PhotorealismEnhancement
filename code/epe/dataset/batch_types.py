@@ -92,7 +92,7 @@ class EPEBatch(ImageBatch):
 			robust_labels=_safe_to(self.robust_labels, device), path=self.path)
 
 
-	def crop(self, r0, r1, c0, c1):
+	def crop(self, r0, r1, c0, c1, size=196):
 		""" Crop all images in the batch.
 
 		"""
@@ -108,11 +108,18 @@ class EPEBatch(ImageBatch):
 		# 	labelmap = self.labelmap
 		# 	pass
 
+		image         = self.img[:, :, r0:r1, c0:c1]
 		gbuffers      = None if self.gbuffers is None else self.gbuffers[:,:,r0:r1,c0:c1]
 		gt_labels     = None if self.gt_labels is None else self.gt_labels[:,:,r0:r1,c0:c1]		
 		robust_labels = None if self.robust_labels is None else self.robust_labels[:,:,r0:r1,c0:c1]		
 		coords        = self._make_new_crop_coords(r0, r1, c0, c1)
-		return EPEBatch(self.img[:,:,r0:r1,c0:c1], \
+		if r0 - r1 != size:
+			image = None if image is None else torch.nn.functional.interpolate(image, 196, mode='bilinear')
+			gbuffers = None if gbuffers is None else torch.nn.functional.interpolate(gbuffers, 196, mode='bilinear')
+			gt_labels = None if gt_labels is None else torch.nn.functional.interpolate(gt_labels.to(torch.float64), 196, mode='nearest').to(torch.int64)
+			robust_labels = None if robust_labels is None else torch.nn.functional.interpolate(robust_labels.to(torch.float64), 196, mode='nearest').to(torch.int64)
+
+		return EPEBatch(image, \
 			gbuffers=gbuffers, gt_labels=gt_labels, robust_labels=robust_labels, 
 			path=self.path, coords=coords)
 

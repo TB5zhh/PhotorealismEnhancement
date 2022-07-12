@@ -354,7 +354,7 @@ class BaseExperiment:
 		self.result_ext      = '.jpg' 
 
 		self._log.debug(f'  weight_dir   : {self.weight_dir}')
-		self._log.debug(f'  name_load    : {self.weight_init}{" (will not load anything)" if self.weight_init is None else ""}')
+		self._log.info(f'  name_load    : {self.weight_init}{" (will not load anything)" if self.weight_init is None else ""}')
 		self._log.debug(f'  out_dir      : {self.dbg_dir}')
 
 		train_cfg = dict(self.cfg.get('train', {}))

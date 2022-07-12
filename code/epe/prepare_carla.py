@@ -157,7 +157,7 @@ if __name__ == '__main__':
         load = lambda x: np.asarray(Image.open(x)).astype(np.float64) / 255.0
         load_depth = lambda x: np.einsum(
             'xya,a->xy', np.asarray(Image.open(x)),
-            np.array((1, 256, 65536)) / (256 * 256 * 256 - 1) * 1000)
+            np.array((1, 256, 65536)) / (256 * 256 * 256 - 1))
         for idx, (rgb_f, depth_f, mask_f) in enumerate(
                 zip(tqdm(rgb_list), depth_list, mask_list)):
             if idx < args.cut_head:
@@ -174,8 +174,8 @@ if __name__ == '__main__':
                         Path(root) / 'gbuffer_v' / f'{idx}-SceneGBufferC.png'),
                     load(
                         Path(root) / 'gbuffer_v' / f'{idx}-SceneGBufferB.png'),
-                    load(
-                        Path(root) / 'gbuffer_v' / f'{idx}-SceneGBufferD.png'),
+                    # load(
+                    #     Path(root) / 'gbuffer_v' / f'{idx}-SceneGBufferD.png'),
                 ]
             except FileNotFoundError:
                 break
